@@ -1,0 +1,5 @@
+# AI-Native Telemetry Tracing & Autonomous Agent Triage Engine
+opentelemetry-api>=1.20.0
+opentelemetry-sdk>=1.20.0
+pydantic>=2.0.0
+pytest>=7.0.0

@@ -1,0 +1,26 @@
+[
+  {
+    "timestamp": "2026-10-09T08:10:00Z",
+    "actor": "arn:aws:iam::123456789012:user/devops_ci",
+    "actor_type": "IAMUser",
+    "action": "CreateSecurityGroup",
+    "resource_name": "sg-0918237192",
+    "resource_type": "SecurityGroup",
+    "src_ip": "52.95.120.1",
+    "user_agent": "terraform-provider-aws/4.50.0",
+    "status": "SUCCESS",
+    "error_code": null
+  },
+  {
+    "timestamp": "2026-10-09T08:12:30Z",
+    "actor": "arn:aws:iam::123456789012:user/devops_ci",
+    "actor_type": "IAMUser",
+    "action": "AuthorizeSecurityGroupIngress",
+    "resource_name": "sg-0918237192",
+    "resource_type": "SecurityGroup",
+    "src_ip": "52.95.120.1",
+    "user_agent": "terraform-provider-aws/4.50.0",
+    "status": "SUCCESS",
+    "error_code": null
+  }
+]

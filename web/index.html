@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TelemetryLab | Detection Engineering Playground</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- CodeMirror for SQL editor syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/sql-hint.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">
+          <span class="logo-text">Telemetry<span class="accent">Lab</span></span>
+          <span class="badge badge-cyber">SQLite Engine</span>
+        </div>
+      </div>
+      <div class="header-center">
+        <div class="stat-pill"><span class="stat-label">DB:</span> <span id="stat-db-name" class="stat-val">telemetry.db</span></div>
+        <div class="stat-pill"><span class="stat-label">Tables:</span> <span id="stat-tables-count" class="stat-val">12</span></div>
+        <div class="stat-pill"><span class="stat-label">Events:</span> <span id="stat-events-count" class="stat-val">--</span></div>
+      </div>
+      <div class="header-right">
+        <button id="btn-stream-toggle" class="btn btn-outline-cyan">
+          <span class="indicator-dot" id="stream-indicator"></span>
+          <span id="stream-btn-text">Live Stream: OFF</span>
+        </button>
+        <button id="btn-export-dump" class="btn btn-primary" title="Export portable SQL dump for Git portfolio">
+          Export Git Dump
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="main-layout">
+      <!-- Left Sidebar: Schema Browser -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h3>Telemetry Tables</h3>
+          <button id="btn-refresh-tables" class="btn btn-sm btn-outline" title="Refresh Tables">Refresh</button>
+        </div>
+        <div class="table-search-box">
+          <input type="text" id="table-search-input" placeholder="Filter tables...">
+        </div>
+        <ul id="tables-list" class="tables-tree">
+          <li class="loading-item">Loading tables...</li>
+        </ul>
+      </aside>
+
+      <!-- Center Content: Tabs & Panes -->
+      <main class="content-pane">
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs">
+          <button class="nav-tab active" data-tab="tab-query">SQL Playground</button>
+          <button class="nav-tab" data-tab="tab-rules">Detection Rules (<span id="tab-rules-count">10</span>)</button>
+          <button class="nav-tab" data-tab="tab-schema">Schema Transformer</button>
+          <button class="nav-tab" data-tab="tab-ingest">Ingest & Simulator</button>
+          <button class="nav-tab" data-tab="tab-mitre">MITRE Matrix</button>
+        </nav>
+
+        <!-- Tab 1: SQL Playground & Editor -->
+        <section id="tab-query" class="tab-panel active">
+          <div class="editor-toolbar">
+            <div class="toolbar-left">
+              <button id="btn-run-query" class="btn btn-success" title="Run query (Cmd+Enter or Ctrl+Enter)">
+                Run Query <kbd>Cmd+Enter</kbd>
+              </button>
+              <button id="btn-clear-query" class="btn btn-secondary">Clear</button>
+              <select id="select-query-snippet" class="select-dropdown">
+                <option value="">Select Query Snippet...</option>
+                <option value="snippet-powershell">Detection: Malicious PowerShell Download Cradle</option>
+                <option value="snippet-lsass">Detection: LSASS Memory Dumping via Procdump</option>
+                <option value="snippet-spray">Detection: Password Spray Authentication Failures</option>
+                <option value="snippet-entropy">Detection: High Entropy DNS Tunneling / DGA</option>
+                <option value="snippet-exfil">Detection: Data Exfiltration via Outbound Flow</option>
+                <option value="snippet-cte">Advanced SQL: Recursive CTE Process Tree</option>
+                <option value="snippet-baseline-proc">Baseline: Top Process Executions by User</option>
+                <option value="snippet-baseline-net">Baseline: Outbound Port Breakdown</option>
+              </select>
+            </div>
+            <div class="toolbar-right">
+              <label class="row-limit-label">Limit:
+                <select id="select-row-limit" class="select-dropdown select-sm">
+                  <option value="100">100</option>
+                  <option value="500" selected>500</option>
+                  <option value="1000">1000</option>
+                  <option value="5000">5000</option>
+                </select>
+              </label>
+              <span id="query-meta-badge" class="meta-badge">Ready</span>
+            </div>
+          </div>
+
+          <!-- Code Editor Container -->
+          <div class="editor-container">
+            <textarea id="sql-editor" placeholder="-- Write SQL queries or test detection rules here...
+SELECT * FROM endpoint_process LIMIT 25;"></textarea>
+          </div>
+
+          <!-- Query Results View -->
+          <div class="results-container">
+            <div class="results-header">
+              <div class="results-meta">
+                <span id="results-count-text">0 rows</span>
+                <span id="results-timing-text" class="text-muted"></span>
+              </div>
+              <div class="results-actions">
+                <input type="text" id="results-filter-input" placeholder="Search in results..." class="filter-input">
+                <button id="btn-export-csv" class="btn btn-sm btn-outline">Export CSV</button>
+                <button id="btn-export-json" class="btn btn-sm btn-outline">Export JSON</button>
+              </div>
+            </div>
+            <div id="results-table-wrapper" class="table-responsive">
+              <table id="results-table" class="data-table">
+                <thead><tr id="results-thead"><th>Query results will appear here</th></tr></thead>
+                <tbody id="results-tbody"><tr><td class="empty-state">Execute a query above to view results.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 2: Detection Rules & Lifecycle Hub -->
+        <section id="tab-rules" class="tab-panel">
+          <div class="rules-toolbar">
+            <div class="rules-meta-summary">
+              <button id="btn-run-all-rules" class="btn btn-success">
+                Run All Rules (Batch Suite)
+              </button>
+              <span id="batch-run-status" class="meta-badge">Ready to evaluate</span>
+            </div>
+            <div class="rules-filter-group">
+              <select id="filter-rule-severity" class="select-dropdown select-sm">
+                <option value="ALL">All Severities</option>
+                <option value="CRITICAL">Critical</option>
+                <option value="HIGH">High</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="LOW">Low</option>
+              </select>
+              <select id="filter-rule-tactic" class="select-dropdown select-sm">
+                <option value="ALL">All Tactics</option>
+              </select>
+            </div>
+          </div>
+          <div id="rules-grid" class="rules-cards-grid">
+            <!-- Rules cards injected dynamically -->
+          </div>
+        </section>
+
+        <!-- Tab 3: Schema Transformer & Normalizer -->
+        <section id="tab-schema" class="tab-panel">
+          <div class="schema-manager-view">
+            <div class="panel-section">
+              <h3>Standardize Security Schemas (ECS / OCSF Presets)</h3>
+              <p class="section-desc">
+                Mass update columns across your tables to conform to industry standard schemas (Elastic Common Schema or Open Cybersecurity Schema Framework).
+              </p>
+              <div class="preset-buttons">
+                <button class="btn btn-outline-cyan" onclick="runPreset('ECS', true)">Preview ECS</button>
+                <button class="btn btn-primary" onclick="runPreset('ECS', false)">Apply ECS Schema</button>
+                <button class="btn btn-outline-cyan" onclick="runPreset('OCSF', true)">Preview OCSF</button>
+                <button class="btn btn-primary" onclick="runPreset('OCSF', false)">Apply OCSF Schema</button>
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <h3>Mass Regex Pattern Renamer</h3>
+              <p class="section-desc">
+                Rename multiple columns or tables simultaneously using regular expression substitutions (e.g. rename <code>^dest_</code> to <code>dst_</code>).
+              </p>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Pattern (Regex):</label>
+                  <input type="text" id="pattern-input" placeholder="e.g. ^dest_" value="^dest_">
+                </div>
+                <div class="form-group">
+                  <label>Replacement:</label>
+                  <input type="text" id="replacement-input" placeholder="e.g. dst_" value="dst_">
+                </div>
+                <div class="form-group">
+                  <label>Scope:</label>
+                  <select id="pattern-scope" class="select-dropdown">
+                    <option value="column">Columns</option>
+                    <option value="table">Table Names</option>
+                  </select>
+                </div>
+                <div class="form-group btn-align">
+                  <button class="btn btn-outline" id="btn-pattern-preview">Preview Diff</button>
+                  <button class="btn btn-warning" id="btn-pattern-apply">Apply Regex Rename</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <h3>Single Column or Table Renamer</h3>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Target Table:</label>
+                  <select id="rename-table-select" class="select-dropdown"></select>
+                </div>
+                <div class="form-group">
+                  <label>Old Column Name:</label>
+                  <select id="rename-col-select" class="select-dropdown"></select>
+                </div>
+                <div class="form-group">
+                  <label>New Column Name:</label>
+                  <input type="text" id="rename-new-col-input" placeholder="new_column_name">
+                </div>
+                <div class="form-group btn-align">
+                  <button class="btn btn-primary" id="btn-apply-col-rename">Rename Column</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <h3>Transformation Plan & Diff Output</h3>
+              <pre id="schema-diff-output" class="code-preview-box">// Transformation proposals and results will appear here</pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 4: Ingestion & Telemetry Simulator -->
+        <section id="tab-ingest" class="tab-panel">
+          <div class="ingest-grid">
+            <div class="panel-card">
+              <h3>Mock Telemetry Seeder</h3>
+              <p class="card-desc">Generate enterprise baseline telemetry and injected MITRE ATT&CK attack scenarios.</p>
+              <div class="form-group">
+                <label>Event Volume:</label>
+                <select id="seed-count-select" class="select-dropdown">
+                  <option value="150">Small (150 events)</option>
+                  <option value="500" selected>Medium (500 events)</option>
+                  <option value="1500">Large (1,500 events)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" id="seed-inject-attacks" checked>
+                  Inject MITRE ATT&CK Attack Scenarios (T1059, T1003, T1110, T1071, etc.)
+                </label>
+              </div>
+              <button id="btn-seed-telemetry" class="btn btn-primary">Generate Telemetry</button>
+              <button id="btn-reset-db" class="btn btn-danger" style="margin-left: 8px;">Reset Database</button>
+            </div>
+
+            <div class="panel-card">
+              <h3>Live Telemetry Stream Simulator</h3>
+              <p class="card-desc">Continuously simulates events streaming into the database at a configured interval.</p>
+              <div class="form-group">
+                <label>Stream Interval:</label>
+                <select id="stream-interval-select" class="select-dropdown">
+                  <option value="1">1 second (High throughput)</option>
+                  <option value="3" selected>3 seconds (Standard)</option>
+                  <option value="5">5 seconds (Relaxed)</option>
+                </select>
+              </div>
+              <div class="stream-status-box">
+                <div>Status: <strong id="stream-live-status">STOPPED</strong></div>
+                <div>Events Streamed: <strong id="stream-live-events">0</strong></div>
+              </div>
+              <button id="btn-toggle-stream-card" class="btn btn-success">Start Live Feed</button>
+            </div>
+
+            <div class="panel-card full-width">
+              <h3>Ingest External CSV or JSON</h3>
+              <p class="card-desc">Import external telemetry logs, CSV files, or JSON lines directly as SQLite tables.</p>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Target Table Name:</label>
+                  <input type="text" id="ingest-target-table" value="custom_imported_logs" placeholder="custom_table_name">
+                </div>
+                <div class="form-group">
+                  <label>Format:</label>
+                  <select id="ingest-format-select" class="select-dropdown">
+                    <option value="csv">CSV (Comma-Separated)</option>
+                    <option value="json">JSON (Array or JSON Lines)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Paste Data Content:</label>
+                <textarea id="ingest-content-input" rows="6" class="data-input-box" placeholder="timestamp,user_name,action,ip
+2026-10-09T08:00:00Z,jdoe,LOGIN,10.0.1.25"></textarea>
+              </div>
+              <button id="btn-submit-ingest" class="btn btn-primary">Ingest Data into SQLite</button>
+              <span id="ingest-status-text" class="meta-badge" style="display:none;"></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 5: MITRE ATT&CK Matrix -->
+        <section id="tab-mitre" class="tab-panel">
+          <div class="mitre-view-header">
+            <h3>MITRE ATT&CK Detection Coverage Matrix</h3>
+            <p class="section-desc">Active coverage and rule density across enterprise tactics and techniques.</p>
+          </div>
+          <div id="mitre-tactics-container" class="mitre-tactics-flex">
+            <!-- MITRE tactic columns rendered dynamically -->
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

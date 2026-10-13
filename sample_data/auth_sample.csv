@@ -1,0 +1,7 @@
+timestamp,user_name,user_domain,src_ip,logon_type,auth_status,failure_reason,target_service,mfa_used,geo_country,user_agent
+2026-10-09T08:00:00Z,jdoe,CORP,10.0.1.25,Interactive,SUCCESS,,workstation-01,1,US,Mozilla/5.0
+2026-10-09T08:02:11Z,asmith,CORP,10.0.2.14,Interactive,SUCCESS,,workstation-02,1,US,Mozilla/5.0
+2026-10-09T08:05:40Z,external_contractor,CORP,198.51.100.88,Network,FAILURE,BadPassword,vpn_gateway,0,FR,OpenVPN/2.5.4
+2026-10-09T08:05:55Z,external_contractor,CORP,198.51.100.88,Network,FAILURE,BadPassword,vpn_gateway,0,FR,OpenVPN/2.5.4
+2026-10-09T08:06:10Z,external_contractor,CORP,198.51.100.88,Network,SUCCESS,,vpn_gateway,1,FR,OpenVPN/2.5.4
+2026-10-09T08:15:30Z,svc_deployer,CORP,10.0.0.50,Network,SUCCESS,,gitlab_runner,0,US,GitLab-Runner/15.0
